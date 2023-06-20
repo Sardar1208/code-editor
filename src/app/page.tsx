@@ -2,6 +2,10 @@
 import Image from "next/image";
 import Prism from "prismjs";
 import { useState, useRef } from "react";
+import 'prismjs/themes/prism.css';
+
+// TODO - breaking if we type characters like "=", "()" or go to a new line.
+// TODO - breaking if we type in between at a random point
 
 export default function Home() {
   const editorRef = useRef<any>(null);
@@ -23,7 +27,7 @@ export default function Home() {
       var totalOffset = startOffset;
 
       var mainNode: any = range.startContainer;
-      mainNode = mainNode.previousSibling;
+      mainNode = mainNode.parentElement.previousSibling || mainNode.previousSibling;
       while (mainNode != null) {
         if (mainNode.nodeType === Node.TEXT_NODE) {
           totalOffset += mainNode.nodeValue!.length;
@@ -33,7 +37,7 @@ export default function Home() {
         mainNode = mainNode.previousSibling;
       }
 
-      console.log("Total offset:", totalOffset);
+      console.log("Total offset: " + totalOffset.toString() + "for text: " + text);
       currentPosition = totalOffset;
     }
 
@@ -75,6 +79,7 @@ export default function Home() {
 
         if (totalCount >= currentPosition) {
           currentNode = node;
+          break;
         }
       }
 
@@ -82,11 +87,10 @@ export default function Home() {
       const selection = window.getSelection();
       const range = document.createRange();
       // TODO - optimize this
-      // TODO - its still breaking if we type "hello sarthak const abcd "
       try {
         // set the cursor position in case of text node
         // its causes an index error in case of span node
-        range.setStart(node, currentPosition - count);
+        range.setStart(currentNode, currentPosition - count);
       } catch (e) {
         console.log("error is : ", e);
         // set cursor position in case of span node
