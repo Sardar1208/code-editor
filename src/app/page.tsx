@@ -1,15 +1,20 @@
 "use client";
 import Image from "next/image";
 import Prism from "prismjs";
-import { useState, useRef } from "react";
-import 'prismjs/themes/prism.css';
+import acorn from "acorn";
 
-// TODO - breaking if we type characters like "=", "()" or go to a new line.
-// TODO - breaking if we type in between at a random point
+import { useState, useRef } from "react";
+import "prismjs/themes/prism.css";
+import { CodeError } from "./utils/interfaces";
+import Inspector from "./components/inspector";
+const espree = require("espree");
+
+// TODO - breaking if we type something in quotes "".
 
 export default function Home() {
   const editorRef = useRef<any>(null);
-  const [code, setCode] = useState("hello");
+  const [code, setCode] = useState("const a : 23;\nvar b : 100;");
+  const [error, setError]: any = useState();
 
   function updateCode() {
     var editor = document.getElementById("main_input");
@@ -27,20 +32,22 @@ export default function Home() {
       var totalOffset = startOffset;
 
       var mainNode: any = range.startContainer;
-      mainNode = mainNode.parentElement.previousSibling || mainNode.previousSibling;
+      mainNode =
+        mainNode.parentElement.previousSibling || mainNode.previousSibling;
       while (mainNode != null) {
         if (mainNode.nodeType === Node.TEXT_NODE) {
           totalOffset += mainNode.nodeValue!.length;
-        }else {
+        } else {
           totalOffset += mainNode.firstChild!.nodeValue!.length;
         }
         mainNode = mainNode.previousSibling;
       }
 
-      console.log("Total offset: " + totalOffset.toString() + "for text: " + text);
+      console.log(
+        "Total offset: " + totalOffset.toString() + "for text: " + text
+      );
       currentPosition = totalOffset;
     }
-
 
     // Generate the highlighted code using Prism
     if (currentPosition != null) {
@@ -102,9 +109,31 @@ export default function Home() {
     }
   }
 
+  function parseCode() {
+    var editor = document.getElementById("main_input");
+    const text = editor ? editor.innerText : "";
+
+    try {
+      var res = espree.parse(text, {
+        ecmaVersion: 2023,
+        ecmaFeatures: { jsx: true },
+      });
+
+      setError(null);
+    } catch (e: any) {
+      console.log(e);
+      var error: CodeError = {
+        lineNumber: e.lineNumber || 0,
+        index: e.index || 0,
+        message: e.message || "",
+        type: e.name || "",
+      };
+      setError(error);
+    }
+  }
+
   return (
     <main className="h-full w-full">
-      <button onClick={() => console.log("changes made", code)}>get log</button>
       <pre>
         <code
           ref={editorRef}
@@ -113,18 +142,16 @@ export default function Home() {
           aria-multiline="true"
           content={code}
           onInput={(e) => {
-            // console.log("changes made", e.target);
             updateCode();
+            parseCode();
           }}
-          className="h-full w-full bg-grey-500"
+          className="h-full w-full outline-none w-full h-full"
         >
           {code}
         </code>
       </pre>
 
-      {/* <div contentEditable="true">
-        <span style={{ color: "yellow" }}>const</span> name = new;
-      </div> */}
+      <Inspector error={error} />
     </main>
   );
 }

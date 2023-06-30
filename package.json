@@ -15,6 +15,7 @@
     "autoprefixer": "10.4.14",
     "eslint": "8.41.0",
     "eslint-config-next": "13.4.4",
+    "espree": "^9.5.2",
     "next": "13.4.4",
     "postcss": "8.4.24",
     "prismjs": "^1.29.0",
@@ -24,6 +25,7 @@
     "typescript": "5.0.4"
   },
   "devDependencies": {
+    "@types/esprima": "^4.0.3",
     "@types/prismjs": "^1.26.0"
   }
 }
