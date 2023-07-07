@@ -13,6 +13,7 @@ const espree = require("espree");
 
 export default function Home() {
   const editorRef = useRef<any>(null);
+  const linesRef = useRef<any>(null);
   const [code, setCode] = useState("const a : 23;\nvar b : 100;");
   const [error, setError]: any = useState();
 
@@ -132,25 +133,58 @@ export default function Home() {
     }
   }
 
+  function manageNumofLines() {
+    var editor = document.getElementById("main_input");
+    var linesDiv = linesRef.current;
+    const text = editor ? editor.innerText : "";
+
+    var count = (text.split("\n").length - 1);
+
+    console.log(linesDiv.childNodes);
+
+    if(linesDiv.childNodes.length > count) {
+      // remove last child
+      var lastLine =
+        linesDiv.childNodes[linesDiv.childNodes.length - 1];
+      linesDiv.removeChild(lastLine);
+    } else if (linesDiv.childNodes.length < count) {
+      // increment the child
+      var lastLine =
+        linesDiv.childNodes[linesDiv.childNodes.length - 1].textContent;
+      var lineNumberNode = document.createTextNode(
+        (parseInt(lastLine!) + 1).toString()
+      );
+      const p = document.createElement("p");
+      p.appendChild(lineNumberNode);
+      linesDiv.appendChild(p);
+    }
+  }
+
   return (
     <main className="h-full w-full">
-      <pre>
-        <code
-          ref={editorRef}
-          id="main_input"
-          contentEditable="true"
-          aria-multiline="true"
-          content={code}
-          onInput={(e) => {
-            updateCode();
-            parseCode();
-          }}
-          className="h-full w-full outline-none w-full h-full"
-        >
-          {code}
-        </code>
-      </pre>
-
+      <div className="flex gap-7 px-5 py-3">
+        <div className="text-zinc-500" id="lines" ref={linesRef}>
+          <p>1</p>
+        </div>
+        <pre>
+          <code
+            ref={editorRef}
+            id="main_input"
+            style={{ lineHeight: "20px" }}
+            contentEditable="true"
+            aria-multiline="true"
+            content={code}
+            onInput={(e) => {
+              updateCode();
+              parseCode();
+              manageNumofLines();
+            }}
+            className="h-full w-full outline-none w-full h-full"
+          >
+            {code}
+          </code>
+        </pre>
+      </div>
       <Inspector error={error} />
     </main>
   );
