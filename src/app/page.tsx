@@ -14,7 +14,7 @@ const espree = require("espree");
 export default function Home() {
   const editorRef = useRef<any>(null);
   const linesRef = useRef<any>(null);
-  const [code, setCode] = useState("const a : 23;\nvar b : 100;");
+  const [code, setCode] = useState("const a = 23;");
   const [error, setError]: any = useState();
 
   function updateCode() {
@@ -33,13 +33,18 @@ export default function Home() {
       var totalOffset = startOffset;
 
       var mainNode: any = range.startContainer;
-      mainNode =
-        mainNode.parentElement.previousSibling || mainNode.previousSibling;
+      // TODO - make a root node and do parentElement.previousSibling utill it is a direct child of the rootNode
+      while (mainNode.parentElement != editor) {
+        mainNode = mainNode.parentElement;
+      }
+      // mainNode =
+      //   mainNode.parentElement.previousSibling || mainNode.previousSibling;
+      mainNode = mainNode.previousSibling;
       while (mainNode != null) {
         if (mainNode.nodeType === Node.TEXT_NODE) {
           totalOffset += mainNode.nodeValue!.length;
         } else {
-          totalOffset += mainNode.firstChild!.nodeValue!.length;
+          totalOffset += mainNode.innerText.length;
         }
         mainNode = mainNode.previousSibling;
       }
@@ -79,10 +84,10 @@ export default function Home() {
           }
           // nodeType = 1 means its a span node
         } else if (node.nodeType == 1) {
-          if (count + node.firstChild.length < currentPosition) {
-            count += node.firstChild.length;
+          if (count + node.innerText.length < currentPosition) {
+            count += node.innerText.length;
           }
-          totalCount += node.firstChild.length;
+          totalCount += node.innerText.length;
         }
 
         if (totalCount >= currentPosition) {
@@ -96,12 +101,15 @@ export default function Home() {
       const range = document.createRange();
       // TODO - optimize this
       try {
-        // set the cursor position in case of text node
-        // its causes an index error in case of span node
+        // in case its a span node, keep doing currentNode.firstChild until you get the text node
+        while (currentNode.nodeType != 3) {
+          currentNode = currentNode.firstChild;
+        }
+        // set the cursor position of the text node
         range.setStart(currentNode, currentPosition - count);
       } catch (e) {
         console.log("error is : ", e);
-        // set cursor position in case of span node
+        // set cursor position to the end of the currentnode in case of an error
         range.setStartAfter(currentNode);
       }
       range.collapse(true);
@@ -138,30 +146,69 @@ export default function Home() {
     var linesDiv = linesRef.current;
     const text = editor ? editor.innerText : "";
 
-    var count = (text.split("\n").length - 1);
+    var count = text.split("\n").length - 1;
 
     console.log(linesDiv.childNodes);
 
-    if(linesDiv.childNodes.length > count) {
+    if (linesDiv.childNodes.length > count) {
       // remove last child
-      var lastLine =
-        linesDiv.childNodes[linesDiv.childNodes.length - 1];
-      linesDiv.removeChild(lastLine);
+      while (linesDiv.childNodes.length != count) {
+        var lastLine = linesDiv.lastChild;
+        linesDiv.removeChild(lastLine);
+      }
     } else if (linesDiv.childNodes.length < count) {
       // increment the child
-      var lastLine =
-        linesDiv.childNodes[linesDiv.childNodes.length - 1].textContent;
-      var lineNumberNode = document.createTextNode(
-        (parseInt(lastLine!) + 1).toString()
-      );
-      const p = document.createElement("p");
-      p.appendChild(lineNumberNode);
-      linesDiv.appendChild(p);
+
+      while (linesDiv.childNodes.length != count) {
+        var lastLine = linesDiv.lastChild?.textContent ?? 0;
+        var lineNumberNode = document.createTextNode(
+          (parseInt(lastLine!) + 1).toString()
+        );
+        const p = document.createElement("p");
+        p.appendChild(lineNumberNode);
+        linesDiv.appendChild(p);
+      }
+    }
+  }
+
+  function exceuteCode() {
+    var editor = document.getElementById("main_input");
+    var output = document.getElementById("output");
+    const text = editor ? editor.innerText : "";
+
+    try {
+      // replace console.logs with log.
+      const log: any = [];
+      const logNodes: any = [];
+      const originalConsoleLog = console.log;
+      console.log = (...args) => {
+        log.push(...args);
+        originalConsoleLog(...args);
+      };
+      // exceute the code
+      var F = new Function(text);
+      F.apply(null);
+
+      // revert the console.log change
+      console.log = originalConsoleLog;
+
+      // create result in a new Node
+      const result = document.createElement("div");
+      log.forEach((element: string) => {
+        const text = document.createElement("div");
+        text.innerText = element;
+        result.appendChild(text);
+      });
+
+      // Display the output
+      output?.replaceChildren(result);
+    } catch (e) {
+      console.log("errors found: ", e);
     }
   }
 
   return (
-    <main className="h-full w-full">
+    <main className="h-full w-full flex justify-between">
       <div className="flex gap-7 px-5 py-3">
         <div className="text-zinc-500" id="lines" ref={linesRef}>
           <p>1</p>
@@ -178,12 +225,20 @@ export default function Home() {
               updateCode();
               parseCode();
               manageNumofLines();
+              exceuteCode();
             }}
             className="h-full w-full outline-none w-full h-full"
           >
             {code}
           </code>
         </pre>
+      </div>
+
+      <div
+        id="output"
+        className="h-full w-2/4 bg-slate-800 border-l-8 border-slate-900 p-8"
+      >
+        .
       </div>
       <Inspector error={error} />
     </main>
