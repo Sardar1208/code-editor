@@ -1,7 +1,5 @@
 "use client";
-import Image from "next/image";
 import Prism from "prismjs";
-import acorn from "acorn";
 
 import { useState, useRef } from "react";
 import "prismjs/themes/prism.css";
@@ -14,7 +12,7 @@ const espree = require("espree");
 export default function Home() {
   const editorRef = useRef<any>(null);
   const linesRef = useRef<any>(null);
-  const [code, setCode] = useState("const a = 23;");
+  const [code, setCode] = useState("// Write your code here");
   const [error, setError]: any = useState();
 
   function updateCode() {
@@ -37,8 +35,6 @@ export default function Home() {
       while (mainNode.parentElement != editor) {
         mainNode = mainNode.parentElement;
       }
-      // mainNode =
-      //   mainNode.parentElement.previousSibling || mainNode.previousSibling;
       mainNode = mainNode.previousSibling;
       while (mainNode != null) {
         if (mainNode.nodeType === Node.TEXT_NODE) {
@@ -167,6 +163,7 @@ export default function Home() {
         const p = document.createElement("p");
         p.appendChild(lineNumberNode);
         linesDiv.appendChild(p);
+        linesDiv.removeChild(p.ATTRIBUTE_NODE);
       }
     }
   }
@@ -179,7 +176,6 @@ export default function Home() {
     try {
       // replace console.logs with log.
       const log: any = [];
-      const logNodes: any = [];
       const originalConsoleLog = console.log;
       console.log = (...args) => {
         log.push(...args);
@@ -225,7 +221,6 @@ export default function Home() {
               updateCode();
               parseCode();
               manageNumofLines();
-              exceuteCode();
             }}
             className="h-full w-full outline-none w-full h-full"
           >
@@ -234,11 +229,14 @@ export default function Home() {
         </pre>
       </div>
 
-      <div
-        id="output"
-        className="h-full w-2/4 bg-slate-800 border-l-8 border-slate-900 p-8"
-      >
-        .
+      <div className="h-full w-2/5 bg-slate-800 border-l-8 border-slate-900 p-8">
+        <button
+          className="bg-emerald-500 px-4 py-2 rounded-md mb-6"
+          onClick={exceuteCode}
+        >
+          Run
+        </button>
+        <div id="output"></div>
       </div>
       <Inspector error={error} />
     </main>
